@@ -8,8 +8,8 @@ type PairSelected = { emoji: number | null; name: number | null };
 
 export function Pairs(): JSX.Element {
 	const [items, setItems] = useState(getPairsList(5));
-	const [itemsEmojiList] = useState(() => shuffleArray(items));
-	const [itemsNameList] = useState(() => shuffleArray(items));
+	const [itemsEmojiList, setItemsEmojiList] = useState(shuffleArray(items));
+	const [itemsNameList, setItemsNameList] = useState(shuffleArray(items));
 	const [selected, setSelected] = useState<PairSelected>({
 		emoji: null,
 		name: null,
@@ -29,6 +29,19 @@ export function Pairs(): JSX.Element {
 				item.id === id ? { ...item, [key]: status } : item
 			)
 		);
+		if (key === 'emojiStatus') {
+			setItemsEmojiList((prevItems) =>
+				prevItems.map((item) =>
+					item.id === id ? { ...item, [key]: status } : item
+				)
+			);
+		} else if (key === 'nameStatus') {
+			setItemsNameList((prevItems) =>
+				prevItems.map((item) =>
+					item.id === id ? { ...item, [key]: status } : item
+				)
+			);
+		}
 	};
 
 	const handleSelect = (
