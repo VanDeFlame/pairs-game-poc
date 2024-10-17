@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Card } from './Card';
 import { CardStatus } from '../types';
 import { getPairsList } from '../utils/getPairsList.function';
@@ -8,60 +8,66 @@ type PairSelected = { emoji: number | null; name: number | null };
 
 export function Pairs(): JSX.Element {
 	const [items, setItems] = useState(getPairsList(5));
-	const [itemsEmojiList, setItemsEmojiList] = useState(getPairsList(5));
-	const [itemsNameList, setItemsNameList] = useState(getPairsList(5));
+	const [itemsEmojiList] = useState(() => shuffleArray(items));
+	const [itemsNameList] = useState(() => shuffleArray(items));
 	const [selected, setSelected] = useState<PairSelected>({
 		emoji: null,
 		name: null,
 	});
 
-	useEffect(() => {
-		setItemsEmojiList(shuffleArray(items));
-		setItemsNameList(shuffleArray(items));
-	}, []);
+	const updateSelected = (type: 'emoji' | 'name', id: number | null): void => {
+		setSelected((prev) => ({ ...prev, [type]: id }));
+	};
+
+	const updateStatus = (
+		id: number,
+		status: CardStatus,
+		key: 'emojiStatus' | 'nameStatus'
+	): void => {
+		setItems((prevItems) =>
+			prevItems.map((item) =>
+				item.id === id ? { ...item, [key]: status } : item
+			)
+		);
+	};
 
 	const handleSelect = (
 		selection: Partial<{ emoji: number; name: number }>
 	): void => {
-		if (selection.emoji) {
-			if (selected.emoji === selection.emoji) {
-				setSelected((prev) => ({ ...prev, emoji: null }));
-				changeStatus({
-					id: selection.emoji,
-					status: CardStatus.UNSELECTED,
-					key: 'emojiStatus',
-				});
-			} else {
-				setSelected((prev) => ({ ...prev, emoji: selection.emoji! }));
-				changeStatus({
-					id: selection.emoji,
-					status: CardStatus.SELECTED,
-					key: 'emojiStatus',
-				});
-			}
-		} else if (selection.name) {
-			if (selected.name === selection.name) {
-				setSelected((prev) => ({ ...prev, name: null }));
-				changeStatus({
-					id: selection.name,
-					status: CardStatus.UNSELECTED,
-					key: 'nameStatus',
-				});
-			} else {
-				setSelected((prev) => ({ ...prev, name: selection.name! }));
-				changeStatus({
-					id: selection.name,
-					status: CardStatus.SELECTED,
-					key: 'nameStatus',
-				});
-			}
+		const { emoji, name } = selection;
+
+		if (emoji !== undefined) {
+			handleEmojiSelection(emoji);
+		} else if (name !== undefined) {
+			handleNameSelection(name);
 		}
 
-		if (selected.emoji && selection.name) {
-			checkMatch({ emoji: selected.emoji, name: selection.name });
-		} else if (selected.name && selection.emoji) {
-			checkMatch({ emoji: selection.emoji, name: selected.name });
+		if ((selected.emoji && name) || (selected.name && emoji)) {
+			checkMatch({
+				emoji: emoji ?? selected.emoji!,
+				name: name ?? selected.name!,
+			});
 		}
+	};
+
+	const handleEmojiSelection = (emoji: number): void => {
+		const isSelected = selected.emoji === emoji;
+		updateSelected('emoji', isSelected ? null : emoji);
+		updateStatus(
+			emoji,
+			isSelected ? CardStatus.UNSELECTED : CardStatus.SELECTED,
+			'emojiStatus'
+		);
+	};
+
+	const handleNameSelection = (name: number): void => {
+		const isSelected = selected.name === name;
+		updateSelected('name', isSelected ? null : name);
+		updateStatus(
+			name,
+			isSelected ? CardStatus.UNSELECTED : CardStatus.SELECTED,
+			'nameStatus'
+		);
 	};
 
 	const checkMatch = ({
@@ -74,8 +80,8 @@ export function Pairs(): JSX.Element {
 		const matchStatus =
 			emoji === name ? CardStatus.CORRECT : CardStatus.INCORRECT;
 
-		changeStatus({ id: emoji, status: matchStatus, key: 'emojiStatus' });
-		changeStatus({ id: name, status: matchStatus, key: 'nameStatus' });
+		updateStatus(emoji, matchStatus, 'emojiStatus');
+		updateStatus(name, matchStatus, 'nameStatus');
 
 		setSelected({
 			emoji: null,
@@ -83,29 +89,12 @@ export function Pairs(): JSX.Element {
 		});
 	};
 
-	const changeStatus = ({
-		key,
-		id,
-		status,
-	}: {
-		key: 'emojiStatus' | 'nameStatus';
-		id: number;
-		status: CardStatus;
-	}): void => {
-		const itemList = [...items];
-
-		const index = itemList.findIndex((item) => item.id === id);
-
-		itemList[index][key] = status;
-
-		setItems(itemList);
-	};
-
 	return (
 		<div className='flex justify-evenly'>
 			<div className='flex flex-col gap-2'>
 				{itemsEmojiList.map((item) => (
 					<Card
+						key={item.emoji}
 						label={item.emoji}
 						status={item.emojiStatus}
 						handleSelect={() => handleSelect({ emoji: item.id })}
@@ -115,6 +104,7 @@ export function Pairs(): JSX.Element {
 			<div className='flex flex-col gap-2'>
 				{itemsNameList.map((item) => (
 					<Card
+						key={item.name}
 						label={item.name}
 						status={item.nameStatus}
 						handleSelect={() => handleSelect({ name: item.id })}

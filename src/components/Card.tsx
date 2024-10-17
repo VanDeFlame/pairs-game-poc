@@ -7,7 +7,11 @@ type CardProps = {
 	handleSelect: () => void;
 };
 
-export function Card({ label, status, handleSelect }: CardProps): JSX.Element {
+export function Card({
+	label,
+	status,
+	handleSelect,
+}: Readonly<CardProps>): JSX.Element {
 	const onClick = (): void => {
 		if (status === CardStatus.UNSELECTED || status === CardStatus.SELECTED) {
 			handleSelect();
